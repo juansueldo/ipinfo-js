@@ -34,8 +34,8 @@ let initialized = false;
 async function ensureInit() {
   if (initialized) return;
   await initGeoDB(
-    process.env.GEODB_CITY_PATH || path.join(__dirname, '..', 'GeoLite2-City.mmdb'),
-    process.env.GEODB_ASN_PATH  || path.join(__dirname, '..', 'GeoLite2-ASN.mmdb')
+    process.env.GEODB_CITY_PATH || path.join(__dirname, 'GeoLite2-City.mmdb'),
+    process.env.GEODB_ASN_PATH  || path.join(__dirname, 'GeoLite2-ASN.mmdb')
   );
   initialized = true;
 }
