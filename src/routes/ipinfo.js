@@ -34,8 +34,7 @@ async function resolveIpInfo(ip, req) {
 
   const geo = getGeo(ip) || {};
   const asn = getASN(ip) || {};
-  console.log(asn);
-  console.log(geo);
+
   const ua = req.headers['user-agent'] || '';
   const uaRes = new UAParser(ua).getResult();
   const langs = parseAcceptLanguage(req.headers['accept-language']);
