@@ -19,13 +19,14 @@ app.use(express.urlencoded({ extended: true }));
 app.use(morgan('combined', { stream }));
 
 const limiter = rateLimit({
-  windowMs: parseInt(process.env.RATE_WINDOW_MS || '60000'),
-  max: parseInt(process.env.RATE_MAX || '60'),
+  windowMs: 15 * 60 * 1000,
+  max: 100,
   standardHeaders: true,
   legacyHeaders: false,
 });
+
 app.use(limiter);
-app.set('trust proxy', true);
+app.set('trust proxy', 1);
 app.use('/', ipinfoRoute);
 app.use(errorHandler);
 
