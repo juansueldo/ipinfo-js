@@ -3,7 +3,6 @@ const router = express.Router();
 const UAParser = require('ua-parser-js');
 const { getGeo, getASN } = require('../lib/geodb');
 const cache = require('../lib/cache');
-const { logger } = require('../lib/logger');
 
 // ✅ Fix #2: toma solo la primera IP del header x-forwarded-for
 function normalizeIp(ip) {
@@ -30,7 +29,7 @@ function isValidIp(ip) {
 async function resolveIpInfo(ip, req) {
   const cacheKey = `ipinfo:${ip}`;
   const cached = await cache.get(cacheKey);
-  if (cached) return { source: 'cache', ...cached };
+  if (cached) return cached;
 
   const geo = getGeo(ip) || {};
   const asn = getASN(ip) || {};
@@ -39,7 +38,6 @@ async function resolveIpInfo(ip, req) {
   const uaRes = new UAParser(ua).getResult();
   const langs = parseAcceptLanguage(req.headers['accept-language']);
 
-  // ✅ Fix #1: raw_geo separado, no entra al cache
   const result = {
     ip,
     continent:       geo.continent?.names?.en          || null,
@@ -71,8 +69,7 @@ async function resolveIpInfo(ip, req) {
 
   await cache.set(cacheKey, result);
 
-  // raw_geo solo en respuesta, no en cache
-  return { source: cache.type, ...result, raw_geo: geo };
+  return result;
 }
 
 // GET / — IP inferida del request
