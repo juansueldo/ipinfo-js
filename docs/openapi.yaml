@@ -1,0 +1,247 @@
+openapi: 3.0.3
+info:
+  title: IP Info API
+  version: 1.0.0
+  description: API para consultar información geográfica, ASN y del dispositivo a partir de una IP.
+servers:
+  - url: http://localhost:3000
+    description: Desarrollo local
+paths:
+  /:
+    get:
+      summary: Consultar información de una IP
+      description: >
+        Consulta la IP enviada mediante el query param `ip`. Si no se envía,
+        utiliza la primera IP de `X-Forwarded-For` o la dirección remota.
+      operationId: getIpInfo
+      parameters:
+        - $ref: '#/components/parameters/IpQuery'
+        - $ref: '#/components/parameters/AcceptLanguage'
+        - $ref: '#/components/parameters/UserAgent'
+        - $ref: '#/components/parameters/XForwardedFor'
+      responses:
+        '200':
+          $ref: '#/components/responses/IpInfoSuccess'
+        '400':
+          $ref: '#/components/responses/InvalidIp'
+        '429':
+          $ref: '#/components/responses/RateLimitExceeded'
+        '500':
+          $ref: '#/components/responses/InternalError'
+  /{ip}:
+    get:
+      summary: Consultar información de una IP explícita
+      operationId: getIpInfoByPath
+      parameters:
+        - name: ip
+          in: path
+          required: true
+          description: Dirección IPv4 o IPv6.
+          schema:
+            type: string
+          example: 8.8.8.8
+        - $ref: '#/components/parameters/AcceptLanguage'
+        - $ref: '#/components/parameters/UserAgent'
+      responses:
+        '200':
+          $ref: '#/components/responses/IpInfoSuccess'
+        '400':
+          $ref: '#/components/responses/InvalidPathIp'
+        '429':
+          $ref: '#/components/responses/RateLimitExceeded'
+        '500':
+          $ref: '#/components/responses/InternalError'
+components:
+  parameters:
+    IpQuery:
+      name: ip
+      in: query
+      required: false
+      description: Dirección IPv4 o IPv6. Si se omite, la API infiere la IP del request.
+      schema:
+        type: string
+      example: 8.8.8.8
+    AcceptLanguage:
+      name: Accept-Language
+      in: header
+      required: false
+      description: Idiomas aceptados que se devolverán normalizados en `languages`.
+      schema:
+        type: string
+      example: es-AR,es;q=0.9
+    UserAgent:
+      name: User-Agent
+      in: header
+      required: false
+      description: User-Agent utilizado para identificar el dispositivo, sistema operativo y navegador.
+      schema:
+        type: string
+    XForwardedFor:
+      name: X-Forwarded-For
+      in: header
+      required: false
+      description: Lista de IPs reenviadas. Solo se utiliza la primera.
+      schema:
+        type: string
+      example: 8.8.8.8, 10.0.0.1
+  schemas:
+    IpInfo:
+      type: object
+      additionalProperties: false
+      required:
+        - ip
+        - continent
+        - country
+        - country_iso
+        - region
+        - region_iso
+        - city
+        - latitude
+        - longitude
+        - timezone
+        - postal
+        - accuracy_radius
+        - asn
+        - isp
+        - languages
+        - device
+      properties:
+        ip:
+          type: string
+          example: 8.8.8.8
+        continent:
+          type: string
+          nullable: true
+          example: North America
+        country:
+          type: string
+          nullable: true
+          example: United States
+        country_iso:
+          type: string
+          nullable: true
+          example: US
+        region:
+          type: string
+          nullable: true
+        region_iso:
+          type: string
+          nullable: true
+        city:
+          type: string
+          nullable: true
+        latitude:
+          type: number
+          format: double
+          nullable: true
+          example: 37.751
+        longitude:
+          type: number
+          format: double
+          nullable: true
+          example: -97.822
+        timezone:
+          type: string
+          nullable: true
+          example: America/Chicago
+        postal:
+          type: string
+          nullable: true
+        accuracy_radius:
+          type: integer
+          nullable: true
+          example: 1000
+        asn:
+          type: integer
+          nullable: true
+          example: 15169
+        isp:
+          type: string
+          nullable: true
+          example: GOOGLE
+        languages:
+          type: array
+          items:
+            type: string
+          example:
+            - es-AR
+            - es
+        device:
+          $ref: '#/components/schemas/Device'
+    Device:
+      type: object
+      additionalProperties: false
+      required:
+        - type
+        - vendor
+        - model
+        - os
+        - browser
+      properties:
+        type:
+          type: string
+          example: desktop
+        vendor:
+          type: string
+          nullable: true
+        model:
+          type: string
+          nullable: true
+        os:
+          type: string
+          nullable: true
+          example: Windows 10
+        browser:
+          type: string
+          nullable: true
+          example: Chrome 126.0.0.0
+    Error:
+      type: object
+      required:
+        - error
+      properties:
+        error:
+          type: string
+    InternalError:
+      allOf:
+        - $ref: '#/components/schemas/Error'
+        - type: object
+          properties:
+            message:
+              type: string
+  responses:
+    IpInfoSuccess:
+      description: >
+        Información encontrada. El formato es idéntico tanto para respuestas
+        recién calculadas como para respuestas recuperadas desde caché.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/IpInfo'
+    InvalidIp:
+      description: La IP no fue proporcionada o no tiene un formato válido.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            error: IP no proporcionada o inválida
+    InvalidPathIp:
+      description: La IP incluida en la ruta no tiene un formato válido.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            error: 'IP inválida: valor-recibido'
+    RateLimitExceeded:
+      description: Se superó el límite de solicitudes permitido.
+    InternalError:
+      description: Error interno inesperado.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/InternalError'
+          example:
+            error: Internal Server Error
+            message: Descripción del error
